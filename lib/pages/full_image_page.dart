@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-// For opening the download link in a browser
-import 'package:share_plus/share_plus.dart'; // Import share_plus package
+import 'package:share_plus/share_plus.dart'; // Import for sharing the image
 import '../photo_model.dart';
 
 class FullImagePage extends StatelessWidget {
@@ -17,6 +16,7 @@ class FullImagePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
+          // Display the image description as title or "Image" if empty
           photo.description.isNotEmpty ? photo.description : "Image",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
@@ -25,7 +25,7 @@ class FullImagePage extends StatelessWidget {
             icon: Icon(Icons.download),
             onPressed: () async {
               await requestPermissions(); // Ensure permissions are granted
-              await downloadImage(photo.downloadLink); // Call the download function
+              await downloadImage(photo.downloadLink); // Download image
             },
           ),
         ],
@@ -35,6 +35,7 @@ class FullImagePage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Display the image, with tap to view in full resolution
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -48,7 +49,7 @@ class FullImagePage extends StatelessWidget {
               ),
               SizedBox(height: 20),
 
-              // Photographer and resolution details with appealing styles
+              // Display photographer and image resolution details
               Text(
                 "Photographer: ${photo.photographer}",
                 style: TextStyle(
@@ -68,11 +69,11 @@ class FullImagePage extends StatelessWidget {
               ),
               SizedBox(height: 20),
 
-              // Beautiful download button
+              // Download button with icon and text
               ElevatedButton.icon(
                 onPressed: () async {
-                  await requestPermissions(); // Ensure permissions are granted
-                  await downloadImage(photo.downloadLink); // Call the download function
+                  await requestPermissions(); // Check permissions before download
+                  await downloadImage(photo.downloadLink); // Trigger download
                 },
                 icon: Icon(Icons.download_rounded, color: Colors.white),
                 label: Text(
@@ -86,15 +87,15 @@ class FullImagePage extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 5, // Add shadow for depth
+                  elevation: 5, // Adds button shadow
                 ),
               ),
               SizedBox(height: 20),
 
-              // Share button for sharing the image
+              // Share button to share the image URL
               ElevatedButton.icon(
                 onPressed: () async {
-                  await shareImage(photo.downloadLink, photo.imageUrl); // Share the image with the link
+                  await shareImage(photo.downloadLink, photo.imageUrl); // Share image and link
                 },
                 icon: Icon(Icons.share, color: Colors.white),
                 label: Text(
@@ -108,7 +109,7 @@ class FullImagePage extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 5, // Add shadow for depth
+                  elevation: 5, // Adds button shadow
                 ),
               ),
               SizedBox(height: 20),
@@ -119,7 +120,7 @@ class FullImagePage extends StatelessWidget {
     );
   }
 
-  // Function to request storage permissions
+  // Request storage permissions if not already granted
   Future<void> requestPermissions() async {
     var status = await Permission.storage.status;
     if (!status.isGranted) {
@@ -127,27 +128,25 @@ class FullImagePage extends StatelessWidget {
     }
   }
 
-  // Function to download the image
+  // Download the image from the provided URL
   Future<void> downloadImage(String imageUrl) async {
     try {
-      // Check for permissions
       var status = await Permission.storage.status;
       if (!status.isGranted) {
         await Permission.storage.request();
       }
 
-      // Get the directory to save the image
+      // Get the external storage directory for saving the image
       final directory = await getExternalStorageDirectory();
       if (directory == null) {
         throw Exception("Unable to get the directory");
       }
       final filePath = '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // Fetch the image data
+      // Fetch and save the image data
       final response = await http.get(Uri.parse(imageUrl));
       final file = File(filePath);
 
-      // Write the image data to the file
       await file.writeAsBytes(response.bodyBytes);
       print('Image downloaded to: $filePath');
     } catch (e) {
@@ -155,20 +154,20 @@ class FullImagePage extends StatelessWidget {
     }
   }
 
-  // Function to share the image with the link using share_plus
+  // Share the image with a download link using share_plus
   Future<void> shareImage(String downloadLink, String imageUrl) async {
     try {
-      // Download the image to share
+      // Download the image temporarily for sharing
       final response = await http.get(Uri.parse(imageUrl));
       final directory = await getTemporaryDirectory();
       final imagePath = '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final file = File(imagePath);
       await file.writeAsBytes(response.bodyBytes);
 
-      // Convert the file path to XFile (which shareFiles expects)
+      // Prepare the image file for sharing
       final xFile = XFile(imagePath);
 
-      // Share the image and the download link
+      // Share the image file with the download link
       await Share.shareXFiles(
         [xFile],
         text: 'Check out this image! Download it here: $downloadLink',
@@ -179,7 +178,7 @@ class FullImagePage extends StatelessWidget {
   }
 }
 
-// New Page to display the image in its original dimensions
+// Page to display the image at its full resolution
 class OriginalImagePage extends StatelessWidget {
   final Photo photo;
 
@@ -193,8 +192,8 @@ class OriginalImagePage extends StatelessWidget {
       ),
       body: Center(
         child: InteractiveViewer(
-          panEnabled: true, // Allow panning
-          scaleEnabled: true, // Allow zooming
+          panEnabled: true, // Enable panning
+          scaleEnabled: true, // Enable zooming
           child: Image.network(
             photo.imageUrl,
             width: photo.width.toDouble(),
